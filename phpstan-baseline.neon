@@ -1,0 +1,421 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to an undefined static method Html\:\:getCheckbox\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: ajax/get_renewal_tickets.php
+
+		-
+			message: '#^Class projecttask referenced with incorrect case\: ProjectTask\.$#'
+			identifier: class.nameCase
+			count: 1
+			path: ajax/get_renewal_tickets.php
+
+		-
+			message: '#^Instantiated class ProjectTask_Ticket not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: ajax/get_renewal_tickets.php
+
+		-
+			message: '#^Access to constant SEEPRIVATE on an unknown class CommonITILTask\.$#'
+			identifier: class.notFound
+			count: 2
+			path: ajax/get_tickets_actiontime.php
+
+		-
+			message: '#^Call to static method getTable\(\) on an unknown class TicketTask\.$#'
+			identifier: class.notFound
+			count: 4
+			path: ajax/get_tickets_actiontime.php
+
+		-
+			message: '#^Call to static method dropdown\(\) on an unknown class ProjectState\.$#'
+			identifier: class.notFound
+			count: 2
+			path: front/config.form.php
+
+		-
+			message: '#^Call to static method dropdown\(\) on an unknown class RequestType\.$#'
+			identifier: class.notFound
+			count: 1
+			path: front/config.form.php
+
+		-
+			message: '#^Instantiated class Config not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: front/config.form.php
+
+		-
+			message: '#^Access to constant SEEPRIVATE on an unknown class CommonITILTask\.$#'
+			identifier: class.notFound
+			count: 2
+			path: hook.php
+
+		-
+			message: '#^Access to undefined constant Ticket\:\:CLOSED\.$#'
+			identifier: classConstant.notFound
+			count: 1
+			path: hook.php
+
+		-
+			message: '#^Call to an undefined static method Search\:\:makeTextSearch\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 11
+			path: hook.php
+
+		-
+			message: '#^Call to static method Register\(\) on an unknown class CronTask\.$#'
+			identifier: class.notFound
+			count: 4
+			path: hook.php
+
+		-
+			message: '#^Call to static method getTable\(\) on an unknown class CronTask\.$#'
+			identifier: class.notFound
+			count: 1
+			path: hook.php
+
+		-
+			message: '#^Call to static method getTable\(\) on an unknown class Crontask\.$#'
+			identifier: class.notFound
+			count: 1
+			path: hook.php
+
+		-
+			message: '#^Call to static method getTable\(\) on an unknown class TicketTask\.$#'
+			identifier: class.notFound
+			count: 1
+			path: hook.php
+
+		-
+			message: '#^Call to static method getWarrantyExpir\(\) on an unknown class Infocom\.$#'
+			identifier: class.notFound
+			count: 1
+			path: hook.php
+
+		-
+			message: '#^Class Project not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: hook.php
+
+		-
+			message: '#^Class projecttask referenced with incorrect case\: ProjectTask\.$#'
+			identifier: class.nameCase
+			count: 2
+			path: hook.php
+
+		-
+			message: '#^Instantiated class Project not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: hook.php
+
+		-
+			message: '#^Instantiated class ProjectTask_Ticket not found\.$#'
+			identifier: class.notFound
+			count: 2
+			path: hook.php
+
+		-
+			message: '#^Parameter \$ticket_task of function plugin_projectbridge_ticketask_add\(\) has invalid type TicketTask\.$#'
+			identifier: class.notFound
+			count: 1
+			path: hook.php
+
+		-
+			message: '#^Parameter \$ticket_task of function plugin_projectbridge_ticketask_update\(\) has invalid type TicketTask\.$#'
+			identifier: class.notFound
+			count: 1
+			path: hook.php
+
+		-
+			message: '#^Parameter \$ticket_task of function updateProjectTaskProgressPercent\(\) has invalid type TicketTask\.$#'
+			identifier: class.notFound
+			count: 1
+			path: hook.php
+
+		-
+			message: '#^Instantiated class GLPIMailer not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: inc/config.class.php
+
+		-
+			message: '#^Call to an undefined static method Ajax\:\:createModalWindow\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: inc/contract.class.php
+
+		-
+			message: '#^Call to an undefined static method Html\:\:showDateField\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: inc/contract.class.php
+
+		-
+			message: '#^Call to an undefined static method Toolbox\:\:getDateFormat\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: inc/contract.class.php
+
+		-
+			message: '#^Call to static method getTable\(\) on an unknown class ProjectTask_Ticket\.$#'
+			identifier: class.notFound
+			count: 5
+			path: inc/contract.class.php
+
+		-
+			message: '#^Call to static method getTable\(\) on an unknown class TicketTask\.$#'
+			identifier: class.notFound
+			count: 3
+			path: inc/contract.class.php
+
+		-
+			message: '#^Call to static method getTicketsTotalActionTime\(\) on an unknown class ProjectTask_Ticket\.$#'
+			identifier: class.notFound
+			count: 1
+			path: inc/contract.class.php
+
+		-
+			message: '#^Call to static method getWarrantyExpir\(\) on an unknown class Infocom\.$#'
+			identifier: class.notFound
+			count: 1
+			path: inc/contract.class.php
+
+		-
+			message: '#^Class projecttask referenced with incorrect case\: ProjectTask\.$#'
+			identifier: class.nameCase
+			count: 4
+			path: inc/contract.class.php
+
+		-
+			message: '#^Instantiated class Project not found\.$#'
+			identifier: class.notFound
+			count: 3
+			path: inc/contract.class.php
+
+		-
+			message: '#^Instantiated class ProjectTask_Ticket not found\.$#'
+			identifier: class.notFound
+			count: 2
+			path: inc/contract.class.php
+
+		-
+			message: '#^Parameter \$project of method PluginProjectbridgeContract\:\:postShowProject\(\) has invalid type Project\.$#'
+			identifier: class.notFound
+			count: 1
+			path: inc/contract.class.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$entity \(Entity\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: inc/entity.class.php
+
+		-
+			message: '#^Class projecttask referenced with incorrect case\: ProjectTask\.$#'
+			identifier: class.nameCase
+			count: 1
+			path: inc/itemform.class.php
+
+		-
+			message: '#^Function getAncestorsOf not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: inc/itemform.class.php
+
+		-
+			message: '#^Instantiated class Project not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: inc/itemform.class.php
+
+		-
+			message: '#^Instantiated class QuerySubQuery not found\.$#'
+			identifier: class.notFound
+			count: 2
+			path: inc/itemform.class.php
+
+		-
+			message: '#^Instantiated class QueryUnion not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: inc/itemform.class.php
+
+		-
+			message: '#^Access to constant LINK_TO on an unknown class Ticket_Ticket\.$#'
+			identifier: class.notFound
+			count: 1
+			path: inc/task.class.php
+
+		-
+			message: '#^Access to undefined constant CommonITILActor\:\:OBSERVER\.$#'
+			identifier: classConstant.notFound
+			count: 2
+			path: inc/task.class.php
+
+		-
+			message: '#^Access to undefined constant CommonITILActor\:\:REQUESTER\.$#'
+			identifier: classConstant.notFound
+			count: 2
+			path: inc/task.class.php
+
+		-
+			message: '#^Access to undefined constant Ticket\:\:CLOSED\.$#'
+			identifier: classConstant.notFound
+			count: 3
+			path: inc/task.class.php
+
+		-
+			message: '#^Access to undefined constant Ticket\:\:SOLVED\.$#'
+			identifier: classConstant.notFound
+			count: 1
+			path: inc/task.class.php
+
+		-
+			message: '#^Call to static method uuid4\(\) on an unknown class Ramsey\\Uuid\\Uuid\.$#'
+			identifier: class.notFound
+			count: 1
+			path: inc/task.class.php
+
+		-
+			message: '#^Class projecttask referenced with incorrect case\: ProjectTask\.$#'
+			identifier: class.nameCase
+			count: 5
+			path: inc/task.class.php
+
+		-
+			message: '#^Instantiated class Group_Ticket not found\.$#'
+			identifier: class.notFound
+			count: 2
+			path: inc/task.class.php
+
+		-
+			message: '#^Instantiated class ITILFollowup not found\.$#'
+			identifier: class.notFound
+			count: 3
+			path: inc/task.class.php
+
+		-
+			message: '#^Instantiated class ITILSolution not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: inc/task.class.php
+
+		-
+			message: '#^Instantiated class Log not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: inc/task.class.php
+
+		-
+			message: '#^Instantiated class Project not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: inc/task.class.php
+
+		-
+			message: '#^Instantiated class ProjectTask_Ticket not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: inc/task.class.php
+
+		-
+			message: '#^Instantiated class TicketTask not found\.$#'
+			identifier: class.notFound
+			count: 3
+			path: inc/task.class.php
+
+		-
+			message: '#^Instantiated class Ticket_Ticket not found\.$#'
+			identifier: class.notFound
+			count: 3
+			path: inc/task.class.php
+
+		-
+			message: '#^Instantiated class Ticket_User not found\.$#'
+			identifier: class.notFound
+			count: 2
+			path: inc/task.class.php
+
+		-
+			message: '#^Parameter \$project of method PluginProjectbridgeTask\:\:customizeDurationColumns\(\) has invalid type Project\.$#'
+			identifier: class.notFound
+			count: 1
+			path: inc/task.class.php
+
+		-
+			message: '#^Access to constant HISTORY_LOG_SIMPLE_MESSAGE on an unknown class Log\.$#'
+			identifier: class.notFound
+			count: 1
+			path: inc/ticket.class.php
+
+		-
+			message: '#^Call to static method history\(\) on an unknown class Log\.$#'
+			identifier: class.notFound
+			count: 1
+			path: inc/ticket.class.php
+
+		-
+			message: '#^Class projecttask referenced with incorrect case\: ProjectTask\.$#'
+			identifier: class.nameCase
+			count: 2
+			path: inc/ticket.class.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$ticket \(Ticket\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: inc/ticket.class.php
+
+		-
+			message: '#^Instantiated class Project not found\.$#'
+			identifier: class.notFound
+			count: 3
+			path: inc/ticket.class.php
+
+		-
+			message: '#^Instantiated class ProjectTask_Ticket not found\.$#'
+			identifier: class.notFound
+			count: 2
+			path: inc/ticket.class.php
+
+		-
+			message: '#^Result of static method Html\:\:closeForm\(\) \(void\) is used\.$#'
+			identifier: staticMethod.void
+			count: 1
+			path: inc/ticket.class.php
+
+		-
+			message: '#^Static call to instance method CommonDBTM\:\:showMassiveActionsSubForm\(\)\.$#'
+			identifier: method.staticCall
+			count: 1
+			path: inc/ticket.class.php
+
+		-
+			message: '#^Undefined variable\: \$ticket_id$#'
+			identifier: variable.undefined
+			count: 2
+			path: inc/ticket.class.php
+
+		-
+			message: '#^Instantiated class Project not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: scripts/link_data.php
+
+		-
+			message: '#^Instantiated class TicketTask not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: scripts/tasks_set_percent_done.php
+
+		-
+			message: '#^Function plugin_init_projectbridge\(\) should return bool but return statement is missing\.$#'
+			identifier: return.missing
+			count: 1
+			path: setup.php
