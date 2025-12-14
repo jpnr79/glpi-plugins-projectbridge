@@ -1,4 +1,14 @@
 <?php
+
+/**
+ * Uninstall function for the ProjectBridge plugin (GLPI compatibility)
+ *
+ * @return bool
+ */
+function plugin_projectbridge_uninstall() {
+    // Add migration or cleanup logic here if needed
+    return true;
+}
 /**
  * ---------------------------------------------------------------------
  *  projectBridge is a plugin allows to count down time from contracts
@@ -32,7 +42,7 @@
 define('PLUGIN_PROJECTBRIDGE_VERSION', '2.7.9');
 
 define('PLUGIN_PROJECTBRIDGE_MIN_GLPI_VERSION', '10.0');
-define('PLUGIN_PROJECTBRIDGE_MAX_GLPI_VERSION', '11.0');
+define('PLUGIN_PROJECTBRIDGE_MAX_GLPI_VERSION', '12.0');
 
 if (!defined("PLUGIN_PROJECTBRIDGE_DIR")) {
     define('PLUGIN_PROJECTBRIDGE_DIR', Plugin::getPhpDir("projectbridge"));
@@ -48,10 +58,10 @@ if (!class_exists('PluginProjectbridgeContractQuotaAlert')) {
     require_once(__DIR__.'/inc/contractQuotaAlert.class.php');
 }
 
+
 /**
- * Plugin description
- *
- * @return boolean
+ * Plugin information for GLPI
+ * @return array
  */
 function plugin_version_projectbridge() {
     return [
@@ -115,6 +125,7 @@ function plugin_init_projectbridge() {
         ]
     );
     Plugin::registerClass('projecttask');
+    return true;
 }
 
 /**
@@ -125,15 +136,18 @@ function plugin_init_projectbridge() {
 function plugin_projectbridge_check_prerequisites() {
     $prerequisites_check_ok = false;
 
-   try {
-      if (version_compare(GLPI_VERSION, PLUGIN_PROJECTBRIDGE_MIN_GLPI_VERSION, '<')) {
-          throw new \Exception('This plugin requires GLPI >= ' . PLUGIN_PROJECTBRIDGE_MIN_GLPI_VERSION);
-      }
-
-       $prerequisites_check_ok = true;
-   } catch (\Exception $e) {
-       echo $e->getMessage();
-   }
+    try {
+        if (defined('GLPI_VERSION')) {
+            if (version_compare(GLPI_VERSION, PLUGIN_PROJECTBRIDGE_MIN_GLPI_VERSION, '<')) {
+                throw new \Exception('This plugin requires GLPI >= ' . PLUGIN_PROJECTBRIDGE_MIN_GLPI_VERSION);
+            }
+            $prerequisites_check_ok = true;
+        } else {
+            throw new \Exception('GLPI_VERSION is not defined.');
+        }
+    } catch (\Exception $e) {
+        echo $e->getMessage();
+    }
 
     return $prerequisites_check_ok;
 }
