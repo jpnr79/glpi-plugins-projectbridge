@@ -48,7 +48,7 @@ if (!defined("PLUGIN_PROJECTBRIDGE_DIR")) {
     define('PLUGIN_PROJECTBRIDGE_DIR', Plugin::getPhpDir("projectbridge"));
 }
 if (!defined("PLUGIN_PROJECTBRIDGE_WEB_DIR")) {
-    define("PLUGIN_PROJECTBRIDGE_WEB_DIR", Plugin::getWebDir("projectbridge"));
+    define("PLUGIN_PROJECTBRIDGE_WEB_DIR", "/plugins/projectbridge/");
 }
 
 if (!class_exists('PluginProjectbridgeConfig')) {
