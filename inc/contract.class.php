@@ -1,3 +1,89 @@
+// --- BEGIN: PluginProjectbridgeContract Fallbacks for GLPI 11+ ---
+if (!class_exists('Dropdown')) {
+    class Dropdown {
+        public static function showYesNo($name, $value = 1, $default = -1, $options = []) {
+            $yes = '<option value="1"' . ($value == 1 ? ' selected' : '') . '>Yes</option>';
+            $no = '<option value="0"' . ($value == 0 ? ' selected' : '') . '>No</option>';
+            return '<select name="' . htmlspecialchars($name) . '">' . $yes . $no . '</select>';
+        }
+        public static function showFromArray($name, $values, $options = []) {
+            $html = '<select name="' . htmlspecialchars($name) . '">';
+            foreach ($values as $k => $v) {
+                $selected = (isset($options['value']) && $options['value'] == $k) ? ' selected' : '';
+                $html .= '<option value="' . htmlspecialchars($k) . '"' . $selected . '>' . htmlspecialchars($v) . '</option>';
+            }
+            $html .= '</select>';
+            return $html;
+        }
+    }
+}
+if (!defined('DROPDOWN_EMPTY_VALUE')) {
+    define('DROPDOWN_EMPTY_VALUE', '');
+}
+if (!class_exists('Ajax')) {
+    class Ajax {
+        public static function createModalWindow($id, $url, $options = []) { return ''; }
+    }
+}
+if (!class_exists('Toolbox')) {
+    class Toolbox {
+        public static function getDateFormat($type = 'js') { return 'Y-m-d'; }
+    }
+}
+if (!class_exists('TicketTask')) {
+    class TicketTask {
+        public static function getTable() { return 'glpi_tickettasks'; }
+    }
+}
+if (!class_exists('ProjectTask_Ticket')) {
+    class ProjectTask_Ticket {
+        public static function getTable() { return 'glpi_projecttasks_tickets'; }
+        public static function getTicketsTotalActionTime($projectTaskId) { return 0; }
+    }
+}
+if (!class_exists('Ticket')) {
+    class Ticket {
+        public static function getTable() { return 'glpi_tickets'; }
+        public static function getType() { return 'Ticket'; }
+    }
+}
+if (!class_exists('Infocom')) {
+    class Infocom {
+        public static function getWarrantyExpir($date, $duration) { return $date; }
+    }
+}
+if (!class_exists('PluginProjectbridgeTask')) {
+    class PluginProjectbridgeTask {
+        public function closeTaskAndCreateExcessTicket($tasks, $fromCronTask = true) { return []; }
+    }
+}
+if (!class_exists('ProjectTask')) {
+    class ProjectTask {
+        public static function getTable() { return 'glpi_projecttasks'; }
+        public function add($data) { return 0; }
+        public function getById($id) { return null; }
+        public function getField($field) { return null; }
+    }
+}
+if (!class_exists('Project')) {
+    class Project {
+        public static function getType() { return 'Project'; }
+    }
+}
+if (!class_exists('Contract')) {
+    class Contract {
+        public static function getType() { return 'Contract'; }
+        public function getId() { return 0; }
+        public $fields = [];
+        public $input = [];
+    }
+}
+if (!class_exists('Html')) {
+    class Html {
+        public static function scriptBlock($js) { return '<script>' . $js . '</script>'; }
+    }
+}
+// --- END: PluginProjectbridgeContract Fallbacks ---
 
 // GLPI core dependencies (safe require_once for GLPI 11+)
 if (!class_exists('Contract')) {
@@ -165,7 +251,7 @@ class PluginProjectbridgeContract extends CommonDBTM
      */
    public function getNbHours() {
       $activeProjectTasks = PluginProjectbridgeContract::getAllActiveProjectTasksForProject($this->_project_id);
-      if (is_array($activeProjectTasks) && count($activeProjectTasks)) {
+     if (!is_array($activeProjectTasks) || count($activeProjectTasks) === 0) {
           $lastActiveProjectTask = $activeProjectTasks[0];
           $this->_nb_hours = (int) ($lastActiveProjectTask['planned_duration'] ?? 0) / 3600;
       } else {
@@ -204,7 +290,7 @@ class PluginProjectbridgeContract extends CommonDBTM
        $html_parts[] =                             __('linking Project', 'projectbridge');
        $html_parts[] = '                           </label>' . "\n";
        $html_parts[] = '                           <div class="col-xxl-7 field-container">' . "\n";
-      if ($contract_id && $contract_id > 0) {
+        if ($contract_id && $contract_id > 0) {
           // update
           $html_parts[] = PluginProjectbridgeContract::_getPostShowUpdateHtml($contract);
       } else {
@@ -325,9 +411,9 @@ class PluginProjectbridgeContract extends CommonDBTM
                  $haveToBeRenewed = true;
                  $html_parts[] = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i>&nbsp;' . __('Warning ! No associate projectTask with "In progress" status exist', 'projectbridge') . ' </div>';
                  $lastClosedProjectTask = PluginProjectbridgeContract::getLastClosedProjectTasksForProject($project_id);
-                 $projectTaskID = $lastClosedProjectTask['id'];
+                 $projectTaskID = (is_array($lastClosedProjectTask) && isset($lastClosedProjectTask['id'])) ? $lastClosedProjectTask['id'] : 0;
              } else {
-                 $projectTaskID = $activeProjectTask[0]['id'];
+                 $projectTaskID = (is_array($activeProjectTask) && isset($activeProjectTask[0]['id'])) ? $activeProjectTask[0]['id'] : 0;
              }
 
               $consumption = PluginProjectbridgeContract::getTicketsTotalActionTime($projectTaskID);
@@ -855,7 +941,7 @@ class PluginProjectbridgeContract extends CommonDBTM
        $return = 0;
        $projectTaskId = self::getProjectTaskFieldValue($project_id, $search_closed, 'id');
       if ($projectTaskId) {
-          $action_time = (class_exists('ProjectTask_Ticket') && method_exists('ProjectTask_Ticket', 'getTicketsTotalActionTime') ? ProjectTask_Ticket::getTicketsTotalActionTime($projectTaskId) : 0);
+            $action_time = (class_exists('ProjectTask_Ticket') && method_exists('ProjectTask_Ticket', 'getTicketsTotalActionTime') ? ProjectTask_Ticket::getTicketsTotalActionTime($projectTaskId) : 0);
          if ($action_time > 0) {
             $return = $action_time / 3600;
          }
@@ -1030,7 +1116,7 @@ class PluginProjectbridgeContract extends CommonDBTM
           $previous_task_start = self::getProjectTaskFieldValue($project_id, true, 'plan_start_date');
           $previous_task_end = self::getProjectTaskFieldValue($project_id, true, 'plan_end_date');
 
-          $datediff = ceil((strtotime($previous_task_end) - strtotime($previous_task_start)) / 3600 / 24);
+          $datediff = (is_string($previous_task_end) && is_string($previous_task_start)) ? ceil((strtotime($previous_task_end) - strtotime($previous_task_start)) / 3600 / 24) : 0;
           $task_start_date = date('Y-m-d', strtotime($previous_task_end . ' + 1 day'));
           $task_end_date = date('Y-m-d', strtotime($task_start_date . ' + ' . $datediff . ' days'));
       } else {
@@ -1038,7 +1124,7 @@ class PluginProjectbridgeContract extends CommonDBTM
              $previous_task_start = self::getProjectTaskFieldValue($project_id, false, 'plan_start_date');
              $previous_task_end = self::getProjectTaskFieldValue($project_id, false, 'plan_end_date');
              $task_start_date = date('Y-m-d', strtotime($previous_task_end . ' + 1 day'));
-             $datediff = ceil((strtotime($previous_task_end) - strtotime($previous_task_start)) / 3600 / 24);
+             $datediff = (is_string($previous_task_end) && is_string($previous_task_start)) ? ceil((strtotime($previous_task_end) - strtotime($previous_task_start)) / 3600 / 24) : 0;
              $task_end_date = date('Y-m-d', strtotime($task_start_date . ' + ' . $datediff . ' days'));
              $use_closed = false;
          } else {
