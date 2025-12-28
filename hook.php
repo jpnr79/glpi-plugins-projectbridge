@@ -1,6 +1,21 @@
-if (php_sapi_name() !== 'cli' && (!defined('GLPI_ROOT') || empty(GLPI_ROOT))) {
-    http_response_code(403);
-    exit('Direct access to this file is forbidden.');
+declare(strict_types=1);
+
+// Security guard: block direct access
+if (!defined('GLPI_ROOT')) {
+   die("Sorry. You can't access this file directly");
+}
+
+use Toolbox;
+
+// Error logging helper for this plugin
+function projectbridge_log_error(string $message, array $context = []): void {
+    Toolbox::logInFile('projectbridge', sprintf(
+        'ERROR [%s] %s | context=%s | user=%s',
+        __FILE__,
+        $message,
+        json_encode($context),
+        $_SESSION['glpiname'] ?? 'unknown'
+    ));
 }
 /**
  * this function update the progessPercent of processTask when a ticketTask is add or update with time associate.
@@ -72,21 +87,15 @@ function plugin_projectbridge_post_show_tab(array $tab_data): void
 }
 
 /**
- * Add new search options
- *
- * @param string $itemtype
- * @return array
- */
-/**
  * Add new search options for the plugin.
  *
  * @param string $itemtype
  * @return array
  */
-function plugin_projectbridge_getAddSearchOptionsNew(string $itemtype): array
-{
+function plugin_projectbridge_getAddSearchOptionsNew(string $itemtype): array {
     $options = [];
-    switch ($itemtype) {
+    try {
+        switch ($itemtype) {
         case 'Entity':
             $options[] = [
                 'id' => 4200,
@@ -256,8 +265,13 @@ function plugin_projectbridge_getAddSearchOptionsNew(string $itemtype): array
 
         default:
         // nothing to do
+        }
+    } catch (Throwable $e) {
+        projectbridge_log_error('Exception in getAddSearchOptionsNew', [
+            'itemtype' => $itemtype,
+            'exception' => $e->getMessage(),
+        ]);
     }
-
     return $options;
 }
 
@@ -265,18 +279,19 @@ function plugin_projectbridge_getAddSearchOptionsNew(string $itemtype): array
  * Add a custom select part to search
  *
  * @param string $itemtype
- * @param string $key
- * @param integer $offset
+ * @param string|int $key
+ * @param int $offset
  * @return string
  */
-function plugin_projectbridge_addSelect($itemtype, $key, $offset) {
+function plugin_projectbridge_addSelect($itemtype, $key, $offset): string {
     global $CFG_GLPI;
     $select = "";
     $onlypublicTasks = false;
-    if (!Session::haveRight("task", CommonITILTask::SEEPRIVATE) || PluginProjectbridgeConfig::getConfValueByName('CountOnlyPublicTasks')) {
-        $onlypublicTasks = true;
-    }
-    switch ($itemtype) {
+    try {
+        if (!Session::haveRight("task", CommonITILTask::SEEPRIVATE) || PluginProjectbridgeConfig::getConfValueByName('CountOnlyPublicTasks')) {
+            $onlypublicTasks = true;
+        }
+        switch ($itemtype) {
         case 'Entity':
             if ($key == 4201) {
                 $contract_link = rtrim($CFG_GLPI['root_doc'], '/') . '/front/contract.form.php?id=';
@@ -557,8 +572,15 @@ function plugin_projectbridge_addSelect($itemtype, $key, $offset) {
 
         default:
         // nothing to do
+        }
+    } catch (Throwable $e) {
+        projectbridge_log_error('Exception in addSelect', [
+            'itemtype' => $itemtype,
+            'key' => $key,
+            'offset' => $offset,
+            'exception' => $e->getMessage(),
+        ]);
     }
-
     return $select;
 }
 
@@ -567,15 +589,15 @@ function plugin_projectbridge_addSelect($itemtype, $key, $offset) {
  *
  * @param string $itemtype
  * @param string $ref_table Reference table (glpi_...)
- * @param integer $new_table Plugin table
- * @param integer $linkfield
+ * @param string $new_table Plugin table
+ * @param int $linkfield
  * @param array $already_link_tables
  * @return string
  */
-function plugin_projectbridge_addLeftJoin($itemtype, $ref_table, $new_table, $linkfield, $already_link_tables) {
+function plugin_projectbridge_addLeftJoin($itemtype, $ref_table, $new_table, $linkfield, $already_link_tables): string {
     $left_join = "";
-
-    switch ($new_table) {
+    try {
+        switch ($new_table) {
         case PluginProjectbridgeEntity::$table_name:
             $left_join = "
                 LEFT JOIN `" . $new_table . "`
@@ -747,26 +769,35 @@ function plugin_projectbridge_addLeftJoin($itemtype, $ref_table, $new_table, $li
 
         default:
         // nothing to do
+        }
+    } catch (Throwable $e) {
+        projectbridge_log_error('Exception in addLeftJoin', [
+            'itemtype' => $itemtype,
+            'ref_table' => $ref_table,
+            'new_table' => $new_table,
+            'linkfield' => $linkfield,
+            'exception' => $e->getMessage(),
+        ]);
     }
-
     return $left_join;
 }
 
 /**
  * Add a custom where to search
  *
- * @param  string $link
- * @param  string $nott
- * @param  string $itemtype
- * @param  string $key
- * @param  string $val        Search argument
- * @param  string $searchtype Type of search (contains, equals, ...)
+ * @param string $link
+ * @param string $nott
+ * @param string $itemtype
+ * @param string|int $key
+ * @param string $val        Search argument
+ * @param string $searchtype Type of search (contains, equals, ...)
  * @return string
  */
-function plugin_projectbridge_addWhere($link, $nott, $itemtype, $key, $val, $searchtype) {
+function plugin_projectbridge_addWhere($link, $nott, $itemtype, $key, $val, $searchtype): string {
     $where = "";
     global $DB;
-    switch ($itemtype) {
+    try {
+        switch ($itemtype) {
         case 'Entity':
             if ($searchtype == 'contains') {
                 if ($key == 4201) {
@@ -929,21 +960,31 @@ function plugin_projectbridge_addWhere($link, $nott, $itemtype, $key, $val, $sea
 
         default:
         // nothing to do
+        }
+    } catch (Throwable $e) {
+        projectbridge_log_error('Exception in addWhere', [
+            'link' => $link,
+            'nott' => $nott,
+            'itemtype' => $itemtype,
+            'key' => $key,
+            'val' => $val,
+            'searchtype' => $searchtype,
+            'exception' => $e->getMessage(),
+        ]);
     }
-
     return $where;
 }
 
 /**
  * Add massive action options
  *
- * @param  string $type
+ * @param string $type
  * @return array
  */
-function plugin_projectbridge_MassiveActions($type) {
+function plugin_projectbridge_MassiveActions(string $type): array {
     $massive_actions = [];
-
-    switch ($type) {
+    try {
+        switch ($type) {
         case 'Ticket':
             $massive_actions['PluginProjectbridgeTicket' . MassiveAction::CLASS_ACTION_SEPARATOR . 'deleteProjectLink'] = __('Delete the link with any project task', 'projectbridge');
             //            $massive_actions['PluginProjectbridgeTicket' . MassiveAction::CLASS_ACTION_SEPARATOR . 'addProjectLink'] = __('Link to a project', 'projectbridge');
@@ -954,19 +995,48 @@ function plugin_projectbridge_MassiveActions($type) {
 
         default:
         // nothing to do
+        }
+    } catch (Throwable $e) {
+        projectbridge_log_error('Exception in MassiveActions', [
+            'type' => $type,
+            'exception' => $e->getMessage(),
+        ]);
     }
-
     return $massive_actions;
 }
 
-function plugin_projectbridge_giveItem($type, $ID, $data, $num) {
+/**
+ * Custom item rendering for projectbridge plugin
+ *
+ * @param string $type
+ * @param int|string $ID
+ * @param array $data
+ * @param string $num
+ * @return string|null
+ */
+function plugin_projectbridge_giveItem($type, $ID, $data, $num): ?string {
     global $CFG_GLPI, $DB;
-    if ($num == "projecttask_4235") {
-        $projectTaskId = $data['raw']['id'];
-        // calcul nombre tickets associés à la tâche de projet
-        $pluginProjectbridgeContract = new PluginProjectbridgeContract();
-        $nbTickets = $pluginProjectbridgeContract->getNbTicketsAssociateToProjectTask($projectTaskId);
-        $ticket_search_link = rtrim($CFG_GLPI['root_doc'], '/') . '/front/ticket.php?is_deleted=0&criteria[0][field]=4212&criteria[0][searchtype]=contains&criteria[0][value]=' . $projectTaskId . '';
-        return '<a href="' . $ticket_search_link . '">' . $nbTickets . '</a>';
+    try {
+        if ($num === "projecttask_4235") {
+            $projectTaskId = $data['raw']['id'] ?? null;
+            if ($projectTaskId === null) {
+                projectbridge_log_error('Missing projectTaskId in giveItem', ['data' => $data]);
+                return null;
+            }
+            // calcul nombre tickets associés à la tâche de projet
+            $pluginProjectbridgeContract = new PluginProjectbridgeContract();
+            $nbTickets = $pluginProjectbridgeContract->getNbTicketsAssociateToProjectTask($projectTaskId);
+            $ticket_search_link = rtrim($CFG_GLPI['root_doc'], '/') . '/front/ticket.php?is_deleted=0&criteria[0][field]=4212&criteria[0][searchtype]=contains&criteria[0][value]=' . $projectTaskId;
+            return '<a href="' . $ticket_search_link . '">' . $nbTickets . '</a>';
+        }
+    } catch (Throwable $e) {
+        projectbridge_log_error('Exception in giveItem', [
+            'type' => $type,
+            'ID' => $ID,
+            'data' => $data,
+            'num' => $num,
+            'exception' => $e->getMessage(),
+        ]);
     }
+    return null;
 }
