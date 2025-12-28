@@ -1,3 +1,28 @@
+// GLPI core and plugin dependencies
+if (!class_exists('Contract')) {
+    require_once(GLPI_ROOT . '/inc/contract.class.php');
+}
+if (!class_exists('Project')) {
+    require_once(GLPI_ROOT . '/inc/project.class.php');
+}
+if (!class_exists('Dropdown')) {
+    require_once(GLPI_ROOT . '/inc/dropdown.class.php');
+}
+if (!class_exists('Toolbox')) {
+    require_once(GLPI_ROOT . '/inc/toolbox.class.php');
+}
+if (!class_exists('Html')) {
+    require_once(GLPI_ROOT . '/inc/html.class.php');
+}
+if (!class_exists('Ajax')) {
+    require_once(GLPI_ROOT . '/inc/ajax.class.php');
+}
+if (!class_exists('TicketTask')) {
+    require_once(GLPI_ROOT . '/inc/tickettask.class.php');
+}
+if (!class_exists('ProjectTask')) {
+    require_once(GLPI_ROOT . '/inc/projecttask.class.php');
+}
 <?php
 /**
  * ---------------------------------------------------------------------
