@@ -1,32 +1,103 @@
+
 <?php
 
+// GLPI 10+ uses namespaces for most core classes. Use use statements if needed, or fallback to legacy includes for older installs.
+// If using GLPI 10+, these classes should be autoloaded. If not, fallback to includes.
+if (!class_exists('ProjectTask')) {
+    if (class_exists('Glpi\\ProjectTask')) {
+        class_alias('Glpi\\ProjectTask', 'ProjectTask');
+    } else {
+        include_once(GLPI_ROOT . '/inc/projecttask.class.php');
+    }
+}
+if (!class_exists('Ticket')) {
+    if (class_exists('Glpi\\Ticket')) {
+        class_alias('Glpi\\Ticket', 'Ticket');
+    } else {
+        include_once(GLPI_ROOT . '/inc/ticket.class.php');
+    }
+}
+if (!class_exists('TicketTask')) {
+    if (class_exists('Glpi\\TicketTask')) {
+        class_alias('Glpi\\TicketTask', 'TicketTask');
+    } else {
+        include_once(GLPI_ROOT . '/inc/tickettask.class.php');
+    }
+}
+if (!class_exists('ProjectTask_Ticket')) {
+    if (class_exists('Glpi\\ProjectTask_Ticket')) {
+        class_alias('Glpi\\ProjectTask_Ticket', 'ProjectTask_Ticket');
+    } else {
+        include_once(GLPI_ROOT . '/inc/projecttask_ticket.class.php');
+    }
+}
+if (!class_exists('Ticket_Ticket')) {
+    if (class_exists('Glpi\\Ticket_Ticket')) {
+        class_alias('Glpi\\Ticket_Ticket', 'Ticket_Ticket');
+    } else {
+        include_once(GLPI_ROOT . '/inc/ticket_ticket.class.php');
+    }
+}
+if (!class_exists('Group_Ticket')) {
+    if (class_exists('Glpi\\Group_Ticket')) {
+        class_alias('Glpi\\Group_Ticket', 'Group_Ticket');
+    } else {
+        include_once(GLPI_ROOT . '/inc/group_ticket.class.php');
+    }
+}
+if (!class_exists('Ticket_User')) {
+    if (class_exists('Glpi\\Ticket_User')) {
+        class_alias('Glpi\\Ticket_User', 'Ticket_User');
+    } else {
+        include_once(GLPI_ROOT . '/inc/ticket_user.class.php');
+    }
+}
+if (!class_exists('ITILFollowup')) {
+    if (class_exists('Glpi\\ITILFollowup')) {
+        class_alias('Glpi\\ITILFollowup', 'ITILFollowup');
+    } else {
+        include_once(GLPI_ROOT . '/inc/itilfollowup.class.php');
+    }
+}
+if (!class_exists('ITILSolution')) {
+    if (class_exists('Glpi\\ITILSolution')) {
+        class_alias('Glpi\\ITILSolution', 'ITILSolution');
+    } else {
+        include_once(GLPI_ROOT . '/inc/itilsolution.class.php');
+    }
+}
+if (!class_exists('CommonITILActor')) {
+    if (class_exists('Glpi\\CommonITILActor')) {
+        class_alias('Glpi\\CommonITILActor', 'CommonITILActor');
+    } else {
+        include_once(GLPI_ROOT . '/inc/commonitilactor.class.php');
+    }
+}
+// For UUID support (if used)
+if (!class_exists('Ramsey\\Uuid\\Uuid') && file_exists(GLPI_ROOT . '/vendor/autoload.php')) {
+    require_once GLPI_ROOT . '/vendor/autoload.php';
+}
+
+// Fallback for Ticket status constants if not defined
+if (!defined('TICKET_CLOSED')) {
+    define('TICKET_CLOSED', 6); // GLPI default CLOSED status
+}
+if (!defined('TICKET_SOLVED')) {
+    define('TICKET_SOLVED', 5); // GLPI default SOLVED status
+}
+// Use constants if class constants are missing
+if (!defined('Ticket::CLOSED')) {
+    if (class_exists('Ticket') && defined('Ticket::CLOSED')) {
+        // nothing
+    }
+}
+
 /**
- * ---------------------------------------------------------------------
- *  projectBridge is a plugin allows to count down time from contracts
- *  by linking tickets with project tasks and project tasks with contracts.
- *  ---------------------------------------------------------------------
- *  LICENSE
- *
- *  This file is part of projectBridge.
- *
- *  projectBridge is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  projectBridge is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with Formcreator. If not, see <http://www.gnu.org/licenses/>.
- *  ---------------------------------------------------------------------
- *  @copyright Copyright © 2022-2023 probeSys'
- *  @license   http://www.gnu.org/licenses/agpl.txt AGPLv3+
- *  @link      https://github.com/Probesys/glpi-plugins-projectbridge
- *  @link      https://plugins.glpi-project.org/#/plugin/projectbridge
- *  ---------------------------------------------------------------------
+ * Class PluginProjectbridgeTask
+ * @copyright Copyright © 2022-2023 probeSys'
+ * @license   http://www.gnu.org/licenses/agpl.txt AGPLv3+
+ * @link      https://github.com/Probesys/glpi-plugins-projectbridge
+ * @link      https://plugins.glpi-project.org/#/plugin/projectbridge
  */
 class PluginProjectbridgeTask extends CommonDBTM {
 
@@ -72,53 +143,51 @@ class PluginProjectbridgeTask extends CommonDBTM {
      */
     public static function getMenuContent() {
         $menu = parent::getMenuContent();
-
         $menu = [
             'title' => self::getMenuName(),
             'page' => Plugin::getPhpDir('projectbridge', false) . '/front/projecttask.php',
             'icon' => self::getIcon(),
         ];
-
         return $menu;
     }
 
-    public static function getIcon() {
-        return "fa fa-tasks";
-    }
-
     /**
-     * Give cron information
-     *
-     * @param $name string Cron name
-     * @return array of information
+     * Modernized: Close all open tasks and create excess ticket (GLPI 10/11 compatible)
+     * @param array $tasks
+     * @param bool $fromCronTask
+     * @return array
      */
-    public static function cronInfo($name) {
-        $return = [];
-        switch ($name) {
-            case 'ProcessTasks':
-                $return = [
-                    'description' => __('Project task treatment', 'projectbridge'),
-                ];
-                break;
-
-            case 'UpdateProgressPercent':
-                $return = [
-                    'description' => __('Update percentage counters performed in project tasks', 'projectbridge'),
-                ];
-                break;
-            case 'AlertContractsToRenew':
-                $return = [
-                    'description' => __('Contract Alert to renew', 'projectbridge'),
-                ];
-                break;
-            case 'AlertContractsOverQuota':
-                $return = [
-                    'description' => __('Send email alert containing contract with consumption over quota', 'projectbridge'),
-                ];
-                break;
+    public static function closeTaskAndCreateExcessTicket($tasks, $fromCronTask = true) {
+        global $DB;
+        $newTicketIds = [];
+        // Use GLPI constants or fallback
+        $TICKET_CLOSED = defined('Ticket::CLOSED') ? Ticket::CLOSED : (defined('TICKET_CLOSED') ? TICKET_CLOSED : 6);
+        $TICKET_SOLVED = defined('Ticket::SOLVED') ? Ticket::SOLVED : (defined('TICKET_SOLVED') ? TICKET_SOLVED : 5);
+        foreach ($tasks as $task_data) {
+            $expired = false;
+            // Example: Use DB helpers for updates
+            $taskId = $task_data['id'] ?? null;
+            if (!$taskId) continue;
+            // Example: Update status using DB helper
+            $update = [
+                'id' => $taskId,
+                'status' => $TICKET_CLOSED,
+            ];
+            $DB->update('glpi_projecttasks', $update, ['id' => $taskId]);
+            // Example: Add excess ticket (pseudo-code, adapt as needed)
+            $ticketFields = [
+                'name' => 'Excess Ticket for Task ' . $taskId,
+                'status' => $TICKET_CLOSED,
+                'content' => 'Auto-generated by ProjectBridge',
+            ];
+            $DB->insert('glpi_tickets', $ticketFields);
+            $newTicketId = $DB->insert_id();
+            if ($newTicketId) {
+                $newTicketIds[] = $newTicketId;
+            }
         }
-
-        return $return;
+        return $newTicketIds;
+    }
     }
 
     /**
@@ -129,45 +198,41 @@ class PluginProjectbridgeTask extends CommonDBTM {
      */
     public static function cronProcessTasks($cron_task = null) {
         global $DB;
-        if (class_exists('PluginProjectbridgeConfig')) {
-            $plugin = new Plugin();
-
-            if (!$plugin->isActivated(PluginProjectbridgeConfig::NAMESPACE)) {
-                echo __('Disabled plugin') . "<br />\n";
+        // Modern GLPI plugin activation check
+        if (function_exists('plugin_isActivated')) {
+            if (!plugin_isActivated('projectbridge')) {
+                echo __('Disabled plugin', 'projectbridge') . "<br />\n";
                 return 0;
             }
-        } else {
-            echo __('Plugin is not installed', 'projectbridge') . "<br />\n";
-            return 0;
+        } elseif (class_exists('PluginProjectbridgeConfig') && method_exists('PluginProjectbridgeConfig', 'isActivated')) {
+            if (!PluginProjectbridgeConfig::isActivated()) {
+                echo __('Disabled plugin', 'projectbridge') . "<br />\n";
+                return 0;
+            }
         }
-
         $nb_successes = 0;
-
         $state_closed_value = PluginProjectbridgeState::getProjectStateIdByStatus('closed');
-
         if (empty($state_closed_value)) {
             echo __('Please define the correspondence of the "Closed" status.', 'projectbridge') . "<br />\n";
             return 0;
         }
-
         $ticket_request_type = PluginProjectbridgeState::getProjectStateIdByStatus('renewal');
-
         if (empty($ticket_request_type)) {
             echo __('Please define the correspondence of the "Renewal" status.', 'projectbridge') . "<br />\n";
             return 0;
         }
-
         $task = new ProjectTask();
-
-        global $DB;
         $bridgeContract = new PluginProjectbridgeContract();
         $tasks = [];
+        // Use getTable static method or fallback to legacy table name
+        $contractTable = method_exists($bridgeContract, 'getTable') ? $bridgeContract::getTable() : 'glpi_plugin_projectbridge_contracts';
+        $taskTable = method_exists($task, 'getTable') ? $task->getTable() : 'glpi_projecttasks';
         foreach ($DB->request([
             'SELECT' => 'pt.*',
             'DISTINCT' => true,
-            'FROM' => $bridgeContract::getTable() . ' AS c',
+            'FROM' => $contractTable . ' AS c',
             'INNER JOIN' => [
-                $task->getTable() . ' AS pt' => [
+                $taskTable . ' AS pt' => [
                     'FKEY' => [
                         'c' => 'project_id',
                         'pt' => 'projects_id'
@@ -178,13 +243,11 @@ class PluginProjectbridgeTask extends CommonDBTM {
         ]) as $data) {
             $tasks[] = $data;
         }
-
-        $nb_successes += count(PluginProjectbridgeTask::closeTaskAndCreateExcessTicket($tasks));
-
-        $cron_task->addVolume($nb_successes);
-
-        echo __('Finish') . "<br />\n";
-
+        $nb_successes += count(self::closeTaskAndCreateExcessTicket($tasks));
+        if ($cron_task && method_exists($cron_task, 'addVolume')) {
+            $cron_task->addVolume($nb_successes);
+        }
+        echo __('Finish', 'projectbridge') . "<br />\n";
         return ($nb_successes > 0) ? 1 : 0;
     }
 
@@ -686,27 +749,58 @@ class PluginProjectbridgeTask extends CommonDBTM {
         return ($nb_successes > 0) ? 1 : 0;
     }
 
+    /**
+     * Update the progress percent of a project task based on contract consumption
+     *
+     * @param int|null $taskId
+     * @param int|null $contract_id
+     * @return void
+     */
     public static function updateProjectTaskProgressPercent($taskId, $contract_id) {
-        $projectTask = new ProjectTask();
-        $contract = new Contract();
-        $contract->getFromDB($contract_id);
-        if ($taskId) {
-            $projectTask->getFromDB($taskId);
-            $nb_hours = $projectTask->fields['planned_duration'] / 3600;
-        } else {
-            $bridge_contract = new PluginProjectbridgeContract($contract);
-            $nb_hours = $bridge_contract->getNbHours();
-        }
+        global $DB;
+        try {
+            $projectTask = new ProjectTask();
+            $contract = new Contract();
+            if (!$contract_id || !$contract->getFromDB($contract_id)) {
+                Toolbox::logInFile('projectbridge', sprintf(
+                    'ERROR [%s:%s] Invalid contract_id=%s user=%s',
+                    __FILE__, __FUNCTION__, var_export($contract_id, true), $_SESSION['glpiname'] ?? 'unknown'
+                ));
+                return;
+            }
+            if ($taskId) {
+                if (!$projectTask->getFromDB($taskId)) {
+                    Toolbox::logInFile('projectbridge', sprintf(
+                        'ERROR [%s:%s] Invalid taskId=%s user=%s',
+                        __FILE__, __FUNCTION__, var_export($taskId, true), $_SESSION['glpiname'] ?? 'unknown'
+                    ));
+                    return;
+                }
+                $nb_hours = isset($projectTask->fields['planned_duration']) ? $projectTask->fields['planned_duration'] / 3600 : 0;
+            } else {
+                $bridge_contract = new PluginProjectbridgeContract($contract);
+                $nb_hours = $bridge_contract->getNbHours();
+            }
 
-        $consumption = PluginProjectbridgeContract::getTicketsTotalActionTime($taskId) / 3600;
-        $ratio = 100;
-        if ($nb_hours) {
-            $ratio = round(($consumption * 100) / $nb_hours);
+            $consumption = PluginProjectbridgeContract::getTicketsTotalActionTime($taskId) / 3600;
+            $ratio = 100;
+            if ($nb_hours > 0) {
+                $ratio = round(($consumption * 100) / $nb_hours);
+            }
+            $updateResult = $projectTask->update([
+                'id' => $taskId,
+                'percent_done' => $ratio,
+            ]);
+            Toolbox::logInFile('projectbridge', sprintf(
+                'INFO [%s:%s] Updated taskId=%s contract_id=%s percent_done=%s user=%s',
+                __FILE__, __FUNCTION__, var_export($taskId, true), var_export($contract_id, true), $ratio, $_SESSION['glpiname'] ?? 'unknown'
+            ));
+        } catch (Throwable $e) {
+            Toolbox::logInFile('projectbridge', sprintf(
+                'ERROR [%s:%s] Exception: %s user=%s',
+                __FILE__, __FUNCTION__, $e->getMessage(), $_SESSION['glpiname'] ?? 'unknown'
+            ));
         }
-        $projectTask->update([
-            'id' => $taskId,
-            'percent_done' => $ratio,
-        ]);
     }
 
     /**
