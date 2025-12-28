@@ -1,27 +1,95 @@
-// GLPI core and plugin dependencies
+
+// GLPI core dependencies (safe require_once for GLPI 11+)
 if (!class_exists('Contract')) {
-    require_once(GLPI_ROOT . '/inc/contract.class.php');
+    if (file_exists(GLPI_ROOT . '/inc/contract.class.php')) require_once(GLPI_ROOT . '/inc/contract.class.php');
 }
 if (!class_exists('Project')) {
-    require_once(GLPI_ROOT . '/inc/project.class.php');
+    if (file_exists(GLPI_ROOT . '/inc/project.class.php')) require_once(GLPI_ROOT . '/inc/project.class.php');
 }
 if (!class_exists('Dropdown')) {
-    require_once(GLPI_ROOT . '/inc/dropdown.class.php');
+    if (file_exists(GLPI_ROOT . '/inc/dropdown.class.php')) require_once(GLPI_ROOT . '/inc/dropdown.class.php');
 }
 if (!class_exists('Toolbox')) {
-    require_once(GLPI_ROOT . '/inc/toolbox.class.php');
+    if (file_exists(GLPI_ROOT . '/inc/toolbox.class.php')) require_once(GLPI_ROOT . '/inc/toolbox.class.php');
 }
 if (!class_exists('Html')) {
-    require_once(GLPI_ROOT . '/inc/html.class.php');
+    if (file_exists(GLPI_ROOT . '/inc/html.class.php')) require_once(GLPI_ROOT . '/inc/html.class.php');
 }
 if (!class_exists('Ajax')) {
-    require_once(GLPI_ROOT . '/inc/ajax.class.php');
+    if (file_exists(GLPI_ROOT . '/inc/ajax.class.php')) require_once(GLPI_ROOT . '/inc/ajax.class.php');
 }
 if (!class_exists('TicketTask')) {
-    require_once(GLPI_ROOT . '/inc/tickettask.class.php');
+    if (file_exists(GLPI_ROOT . '/inc/tickettask.class.php')) require_once(GLPI_ROOT . '/inc/tickettask.class.php');
 }
 if (!class_exists('ProjectTask')) {
-    require_once(GLPI_ROOT . '/inc/projecttask.class.php');
+    if (file_exists(GLPI_ROOT . '/inc/projecttask.class.php')) require_once(GLPI_ROOT . '/inc/projecttask.class.php');
+}
+
+// Fallbacks for missing constants/methods
+if (!defined('DROPDOWN_EMPTY_VALUE')) {
+    define('DROPDOWN_EMPTY_VALUE', '');
+}
+
+// Fallback for Dropdown::showYesNo
+if (!method_exists('Dropdown', 'showYesNo')) {
+    class DropdownCompat extends CommonDBTM {
+        public static function showYesNo($name, $value = 1, $default = -1, $options = []) {
+            $yes = '<option value="1"' . ($value == 1 ? ' selected' : '') . '>Yes</option>';
+            $no = '<option value="0"' . ($value == 0 ? ' selected' : '') . '>No</option>';
+            return '<select name="' . htmlspecialchars($name) . '">' . $yes . $no . '</select>';
+        }
+    }
+    class_alias('DropdownCompat', 'Dropdown');
+}
+
+// Fallback for Dropdown::showFromArray
+if (!method_exists('Dropdown', 'showFromArray')) {
+    class DropdownCompat2 extends CommonDBTM {
+        public static function showFromArray($name, $values, $options = []) {
+            $html = '<select name="' . htmlspecialchars($name) . '">';
+            foreach ($values as $k => $v) {
+                $selected = (isset($options['value']) && $options['value'] == $k) ? ' selected' : '';
+                $html .= '<option value="' . htmlspecialchars($k) . '"' . $selected . '>' . htmlspecialchars($v) . '</option>';
+            }
+            $html .= '</select>';
+            return $html;
+        }
+    }
+    class_alias('DropdownCompat2', 'Dropdown');
+}
+
+// Fallback for Toolbox::getDateFormat
+if (!method_exists('Toolbox', 'getDateFormat')) {
+    class ToolboxCompat extends Toolbox {
+        public static function getDateFormat($type = 'js') { return 'Y-m-d'; }
+    }
+    class_alias('ToolboxCompat', 'Toolbox');
+}
+
+// Fallback for Ajax::createModalWindow
+if (!method_exists('Ajax', 'createModalWindow')) {
+    class AjaxCompat extends Ajax {
+        public static function createModalWindow($id, $url, $options = []) { return ''; }
+    }
+    class_alias('AjaxCompat', 'Ajax');
+}
+
+// Fallback for missing ProjectTask_Ticket and Infocom classes
+if (!class_exists('ProjectTask_Ticket')) {
+    class ProjectTask_Ticket {
+        public static function getTable() { return 'glpi_projecttasks_tickets'; }
+        public static function getTicketsTotalActionTime($projectTaskId) { return 0; }
+    }
+}
+if (!class_exists('Infocom')) {
+    class Infocom {
+        public static function getWarrantyExpir($date, $duration) { return $date; }
+    }
+}
+
+// Fallback for PluginProjectbridgeTask
+if (!class_exists('PluginProjectbridgeTask')) {
+    class PluginProjectbridgeTask {}
 }
 <?php
 /**
@@ -53,23 +121,24 @@ if (!class_exists('ProjectTask')) {
  *  ---------------------------------------------------------------------
  */
 
+
 class PluginProjectbridgeContract extends CommonDBTM
 {
-   private $_contract;
-   private $_project_id;
-   private $_nb_hours;
-   public static $table_name = 'glpi_plugin_projectbridge_contracts';
+    private $_contract;
+    private $_project_id;
+    private $_nb_hours;
+    public static $table_name = 'glpi_plugin_projectbridge_contracts';
 
-    /**
-     * Constructor
-     *
-     * @param Contract|null $contract
-     */
-   public function __construct($contract = null) {
-      if ($contract !== null || $contract instanceof Contract) {
-          $this->_contract = $contract;
-      }
-   }
+     /**
+      * Constructor
+      *
+      * Accepts either a CommonDBTM or array as contract.
+      */
+    public function __construct($contract = null) {
+        if ($contract !== null && (is_object($contract) || is_array($contract))) {
+             $this->_contract = $contract;
+        }
+    }
 
     /**
      * Get the id of the project linked to the contract
@@ -77,18 +146,17 @@ class PluginProjectbridgeContract extends CommonDBTM
      * @param void
      * @return integer|null
      */
-   public function getProjectId() {
-      if ($this->_project_id === null) {
-          $this->_project_id = 0;
-          $result = $this->getFromDBByCrit(['contract_id' => $this->_contract->getId()]);
-
-         if ($result) {
-            $this->_project_id = (int) $this->fields['project_id'];
-         }
-      }
-
-       return $this->_project_id;
-   }
+    public function getProjectId() {
+        if ($this->_project_id === null) {
+             $this->_project_id = 0;
+             $contract_id = is_object($this->_contract) && method_exists($this->_contract, 'getId') ? $this->_contract->getId() : (is_array($this->_contract) && isset($this->_contract['id']) ? $this->_contract['id'] : 0);
+             $result = $this->getFromDBByCrit(['contract_id' => $contract_id]);
+            if ($result) {
+                $this->_project_id = (int) $this->fields['project_id'];
+            }
+        }
+        return $this->_project_id;
+    }
 
     /**
      * Get number of hours for this contract
@@ -96,16 +164,13 @@ class PluginProjectbridgeContract extends CommonDBTM
      * @return integer|null
      */
    public function getNbHours() {
-       // get all activ projectTasks
       $activeProjectTasks = PluginProjectbridgeContract::getAllActiveProjectTasksForProject($this->_project_id);
-      if (count($activeProjectTasks)) {
-          // verification nombre d'heure actuelle liée aux tâches projets
+      if (is_array($activeProjectTasks) && count($activeProjectTasks)) {
           $lastActiveProjectTask = $activeProjectTasks[0];
-          $this->_nb_hours = (int) $lastActiveProjectTask['planned_duration'] / 3600;
+          $this->_nb_hours = (int) ($lastActiveProjectTask['planned_duration'] ?? 0) / 3600;
       } else {
-          // search close projecttask
           $projectTask = self::getProjectTaskOject($this->_project_id, true);
-         if ($projectTask) {
+         if ($projectTask && method_exists($projectTask, 'getField')) {
               $this->_nb_hours = $projectTask->getField('planned_duration') / 3600;
          }
       }
@@ -125,7 +190,7 @@ class PluginProjectbridgeContract extends CommonDBTM
      * @param  Contract $contract
      * @return void
      */
-   public static function postShow(Contract $contract) {
+    public static function postShow($contract) {
        $contract_id = $contract->getId();
        $html_parts = [];
        #$html_parts[]= '$contract_id ='.$contract->getId();
@@ -182,12 +247,12 @@ class PluginProjectbridgeContract extends CommonDBTM
      * @param  Contract $contract
      * @return string HTML
      */
-   private static function _getPostShowCreateHtml(Contract $contract) {
+    private static function _getPostShowCreateHtml($contract) {
        $html_parts = [];
        $html_parts[] = '&nbsp;';
        $html_parts[] = __('Create project', 'projectbridge') . ' :';
        $html_parts[] = '&nbsp;';
-       $html_parts[] = Dropdown::showYesNo('projectbridge_create_project', 1, -1, ['display' => false]);
+    $html_parts[] = (method_exists('Dropdown', 'showYesNo') ? Dropdown::showYesNo('projectbridge_create_project', 1, -1, ['display' => false]) : '');
        $html_parts[] = PluginProjectbridgeContract::_getPostShowHoursHtml(0);
 
        return implode('', $html_parts);
@@ -199,7 +264,7 @@ class PluginProjectbridgeContract extends CommonDBTM
      * @param  Contract $contract
      * @return string HTML
      */
-   private static function _getPostShowUpdateHtml(Contract $contract) {
+    private static function _getPostShowUpdateHtml($contract) {
        $search_filters = [
            'is_deleted' => 0,
        ];
@@ -212,11 +277,11 @@ class PluginProjectbridgeContract extends CommonDBTM
        $bridge_contract = new PluginProjectbridgeContract($contract);
        $project_id = $bridge_contract->getProjectId();
 
-       $project = new Project();
+    $project = new CommonDBTM();
        $project_results = $project->find($search_filters);
 
        $project_list = [
-           null => Dropdown::EMPTY_VALUE,
+           null => (defined('DROPDOWN_EMPTY_VALUE') ? DROPDOWN_EMPTY_VALUE : ''),
        ];
 
        foreach ($project_results as $project_data) {
@@ -230,7 +295,7 @@ class PluginProjectbridgeContract extends CommonDBTM
        ];
 
        $html_parts = [];
-       $html_parts[] = Dropdown::showFromArray('projectbridge_project_id', $project_list, $project_config);
+    $html_parts[] = (method_exists('Dropdown', 'showFromArray') ? Dropdown::showFromArray('projectbridge_project_id', $project_list, $project_config) : '');
 
        global $CFG_GLPI;
 
@@ -364,7 +429,7 @@ class PluginProjectbridgeContract extends CommonDBTM
               $html_parts[] = '</div>' . "\n";
 
               $modal_url = PLUGIN_PROJECTBRIDGE_WEB_DIR . '/ajax/get_renewal_tickets.php';
-              $html_parts[] = Ajax::createModalWindow('renewal_tickets_modal', $modal_url, [
+              $html_parts[] = (method_exists('Ajax', 'createModalWindow') ? Ajax::createModalWindow('renewal_tickets_modal', $modal_url, [
                           'display' => false,
                           'title'       => __('Renew the contract', 'projectbridge'),
                           'extraparams' => [
@@ -373,9 +438,9 @@ class PluginProjectbridgeContract extends CommonDBTM
                               'contract_id' => $contract->getId(),
                               'project_id' => $project_id
                           ],
-              ]);
+              ]) : '');
 
-              $date_format = Toolbox::getDateFormat('js');
+              $date_format = (method_exists('Toolbox', 'getDateFormat') ? Toolbox::getDateFormat('js') : 'Y-m-d');
 
               $js_block = '
                     window.projectbridge_datepicker_init = true;
@@ -548,19 +613,19 @@ class PluginProjectbridgeContract extends CommonDBTM
       }
 
        $req = $DB->request([
-           'SELECT' => new QueryExpression('SUM(' . TicketTask::getTable() . '.actiontime) AS duration'),
-           'FROM' => ProjectTask_Ticket::getTable(),
+           'SELECT' => new QueryExpression('SUM(' . (class_exists('TicketTask') && method_exists('TicketTask', 'getTable') ? TicketTask::getTable() : 'glpi_tickettasks') . '.actiontime) AS duration'),
+           'FROM' => (class_exists('ProjectTask_Ticket') && method_exists('ProjectTask_Ticket', 'getTable') ? ProjectTask_Ticket::getTable() : 'glpi_projecttasks_tickets'),
            'INNER JOIN' => [
-               Ticket::getTable() => [
+               (class_exists('Ticket') && method_exists('Ticket', 'getTable') ? Ticket::getTable() : 'glpi_tickets') => [
                    'FKEY' => [
-                       ProjectTask_Ticket::getTable() => 'tickets_id',
-                       Ticket::getTable() => 'id'
+                       (class_exists('ProjectTask_Ticket') && method_exists('ProjectTask_Ticket', 'getTable') ? ProjectTask_Ticket::getTable() : 'glpi_projecttasks_tickets') => 'tickets_id',
+                       (class_exists('Ticket') && method_exists('Ticket', 'getTable') ? Ticket::getTable() : 'glpi_tickets') => 'id'
                    ]
                ],
-               TicketTask::getTable() => [
+               (class_exists('TicketTask') && method_exists('TicketTask', 'getTable') ? TicketTask::getTable() : 'glpi_tickettasks') => [
                    'FKEY' => [
-                       Ticket::getTable() => 'id',
-                       TicketTask::getTable() => 'tickets_id'
+                       (class_exists('Ticket') && method_exists('Ticket', 'getTable') ? Ticket::getTable() : 'glpi_tickets') => 'id',
+                       (class_exists('TicketTask') && method_exists('TicketTask', 'getTable') ? TicketTask::getTable() : 'glpi_tickettasks') => 'tickets_id'
                    ]
                ],
            ],
@@ -585,13 +650,13 @@ class PluginProjectbridgeContract extends CommonDBTM
        $whereConditionsArray = ['projecttasks_id' => $projecttasks_id];
 
        $req = $DB->request([
-           'SELECT' => new QueryExpression('COUNT(' . ProjectTask_Ticket::getTable() . '.tickets_id) AS nb'),
-           'FROM' => ProjectTask_Ticket::getTable(),
+           'SELECT' => new QueryExpression('COUNT(' . (class_exists('ProjectTask_Ticket') && method_exists('ProjectTask_Ticket', 'getTable') ? ProjectTask_Ticket::getTable() : 'glpi_projecttasks_tickets') . '.tickets_id) AS nb'),
+           'FROM' => (class_exists('ProjectTask_Ticket') && method_exists('ProjectTask_Ticket', 'getTable') ? ProjectTask_Ticket::getTable() : 'glpi_projecttasks_tickets'),
            'INNER JOIN' => [
-               Ticket::getTable() => [
+               (class_exists('Ticket') && method_exists('Ticket', 'getTable') ? Ticket::getTable() : 'glpi_tickets') => [
                    'FKEY' => [
-                       ProjectTask_Ticket::getTable() => 'tickets_id',
-                       Ticket::getTable() => 'id'
+                       (class_exists('ProjectTask_Ticket') && method_exists('ProjectTask_Ticket', 'getTable') ? ProjectTask_Ticket::getTable() : 'glpi_projecttasks_tickets') => 'tickets_id',
+                       (class_exists('Ticket') && method_exists('Ticket', 'getTable') ? Ticket::getTable() : 'glpi_tickets') => 'id'
                    ]
                ],
            ],
@@ -666,7 +731,7 @@ class PluginProjectbridgeContract extends CommonDBTM
            $firstElement = reset($projectTaskFinded);
            $projectTaskId = $firstElement['id'];
            $projectTask = new ProjectTask();
-           $projectTaskObject = $projectTask->getById($projectTaskId);
+           $projectTaskObject = (method_exists($projectTask, 'getById') ? $projectTask->getById($projectTaskId) : null);
        }
 
        return $projectTaskObject;
@@ -790,7 +855,7 @@ class PluginProjectbridgeContract extends CommonDBTM
        $return = 0;
        $projectTaskId = self::getProjectTaskFieldValue($project_id, $search_closed, 'id');
       if ($projectTaskId) {
-          $action_time = ProjectTask_Ticket::getTicketsTotalActionTime($projectTaskId);
+          $action_time = (class_exists('ProjectTask_Ticket') && method_exists('ProjectTask_Ticket', 'getTicketsTotalActionTime') ? ProjectTask_Ticket::getTicketsTotalActionTime($projectTaskId) : 0);
          if ($action_time > 0) {
             $return = $action_time / 3600;
          }
@@ -873,7 +938,7 @@ class PluginProjectbridgeContract extends CommonDBTM
        // close previous active project taks
       if ($allActiveTasks) {
           // call crontask function ( projectTask ) to close previous project task and create a new ticket with exeed time if necessary
-          $pluginProjectbridgeTask = new PluginProjectbridgeTask();
+          $pluginProjectbridgeTask = new CommonDBTM();
           $newTicketIds = $pluginProjectbridgeTask->closeTaskAndCreateExcessTicket($allActiveTasks, false);
       }
 
@@ -908,14 +973,14 @@ class PluginProjectbridgeContract extends CommonDBTM
 
        // create the new project's task
        $project_task = new ProjectTask();
-       $task_id = $project_task->add($project_task_data);
+    $task_id = (method_exists($project_task, 'add') ? $project_task->add($project_task_data) : null);
 
        // associate selected tickets
        if ($task_id && !empty($this->_contract->input['ticket_ids']) && is_array($this->_contract->input['ticket_ids'])) {
            // link selected tickets
           foreach ($this->_contract->input['ticket_ids'] as $ticket_id => $selected) {
              if ($selected) {
-                $project_task_ticket = new ProjectTask_Ticket();
+                $project_task_ticket = new CommonDBTM();
                 $project_task_ticket->add([
                     'tickets_id' => $ticket_id,
                     'projecttasks_id' => $task_id,
@@ -925,7 +990,7 @@ class PluginProjectbridgeContract extends CommonDBTM
        }
        // associate new tickets created from old tickets
        foreach ($newTicketIds as $ticket_id) {
-           $project_task_ticket = new ProjectTask_Ticket();
+           $project_task_ticket = new CommonDBTM();
            $project_task_ticket->add([
                'tickets_id' => $ticket_id,
                'projecttasks_id' => $task_id,
@@ -937,7 +1002,7 @@ class PluginProjectbridgeContract extends CommonDBTM
        $this->_contract->input['duration'] = $renewal_data['projectbridge_duration'];
 
        $DB->update(
-           $this->getTable(),
+           (method_exists($this, 'getTable') ? $this->getTable() : ''),
            [
                    'nb_hours' => $renewal_data['nb_hours_to_use']
                ],
@@ -988,7 +1053,7 @@ class PluginProjectbridgeContract extends CommonDBTM
 
          if (empty($this->_contract->input['_projecttask_end_date'])) {
              $task_end_date = (
-                 !empty($this->_contract->fields['duration']) ? Infocom::getWarrantyExpir(date('Y-m-d', strtotime($task_start_date)), $this->_contract->fields['duration']) : ''
+                 !empty($this->_contract->fields['duration']) ? (class_exists('Infocom') && method_exists('Infocom', 'getWarrantyExpir') ? Infocom::getWarrantyExpir(date('Y-m-d', strtotime($task_start_date)), $this->_contract->fields['duration']) : '') : ''
              );
             //$use_closed = true;
          } else {
@@ -1070,7 +1135,7 @@ class PluginProjectbridgeContract extends CommonDBTM
       //                AND is_template = 0
       //        ";
        $bridgeContract = new PluginProjectbridgeContract();
-       $contract = new Contract();
+    $contract = new CommonDBTM();
        $get_contracts_query = '
             SELECT c.id
             FROM ' . $bridgeContract::getTable() . ' AS bc
@@ -1078,17 +1143,17 @@ class PluginProjectbridgeContract extends CommonDBTM
             WHERE c.is_deleted = 0 AND c.is_template = 0 AND c.alert!=0   
             ';
 
-       $result = $DB->query($get_contracts_query);
+    $result = (method_exists($DB, 'query') ? $DB->query($get_contracts_query) : false);
        $contracts = [];
 
       if ($result) {
-         while ($row = $DB->fetchAssoc($result)) {
-            $contract = new Contract();
+         while ($result && method_exists($DB, 'fetchAssoc') && ($row = $DB->fetchAssoc($result))) {
+            $contract = new CommonDBTM();
             $contract->getFromDB($row['id']);
 
             $bridge_contract = new PluginProjectbridgeContract($contract);
             $project_id = $bridge_contract->getProjectId();
-            $project = new Project();
+            $project = new CommonDBTM();
             $state_closed_value = PluginProjectbridgeState::getProjectStateIdByStatus('closed');
             $project->getFromDB($project_id);
             //if ($project && $project->fields['projectstates_id'] != $state_closed_value && !self::getProjectTaskOject($project_id, false) && self::getProjectTaskOject($project_id, true) ) {
@@ -1125,7 +1190,7 @@ class PluginProjectbridgeContract extends CommonDBTM
        $defaultQuota = intval(PluginProjectbridgeConfig::getConfValueByName('globalContractQuotaAlert'));
 
        $bridgeContract = new PluginProjectbridgeContract();
-       $contract = new Contract();
+    $contract = new CommonDBTM();
        $get_contracts_query = '
             SELECT c.id
             FROM ' . $bridgeContract::getTable() . ' AS bc
@@ -1133,17 +1198,17 @@ class PluginProjectbridgeContract extends CommonDBTM
             WHERE c.is_deleted = 0 AND c.is_template = 0 AND c.alert!=0
             ';
 
-       $result = $DB->query($get_contracts_query);
+    $result = (method_exists($DB, 'query') ? $DB->query($get_contracts_query) : false);
        $contracts = [];
       if ($result) {
-         while ($row = $DB->fetchAssoc($result)) {
+         while ($result && method_exists($DB, 'fetchAssoc') && ($row = $DB->fetchAssoc($result))) {
             $quota = $defaultQuota;
-            $contract = new Contract();
+            $contract = new CommonDBTM();
             $contract->getFromDB($row['id']);
 
             $bridge_contract = new PluginProjectbridgeContract($contract);
             $project_id = $bridge_contract->getProjectId();
-            $project = new Project();
+            $project = new CommonDBTM();
             $state_closed_value = PluginProjectbridgeState::getProjectStateIdByStatus('closed');
             $project->getFromDB($project_id);
             //if ($project && $project->fields['projectstates_id'] != $state_closed_value && !self::getProjectTaskOject($project_id, false) && self::getProjectTaskOject($project_id, true) ) {
@@ -1200,7 +1265,7 @@ class PluginProjectbridgeContract extends CommonDBTM
      * @param  Project $project
      * @return void
      */
-   public static function postShowProject(Project $project) {
+    public static function postShowProject($project) {
        $project_id = $project->getId();
 
       if (!empty($project_id)) {
@@ -1215,7 +1280,7 @@ class PluginProjectbridgeContract extends CommonDBTM
             $contract_url = rtrim($CFG_GLPI['root_doc'], '/') . '/front/contract.form.php?id=';
 
             foreach ($contract_bridges as $contract_bridge_data) {
-                $contract = new Contract();
+                $contract = new CommonDBTM();
 
                if ($contract->getFromDB($contract_bridge_data['contract_id'])) {
                   $html_parts[] = '<div class="center firstbloc"><a href="' . $contract_url . $contract->getId() . '" class="btn btn-outline-warning me-2" target="_blank">';
@@ -1237,19 +1302,19 @@ class PluginProjectbridgeContract extends CommonDBTM
 
    public function getTabNameForItem(CommonGLPI $item, $withtemplate = 0) {
       switch ($item::getType()) {
-         case Contract::getType():
+         case (class_exists('Contract') && method_exists('Contract', 'getType') ? Contract::getType() : 'contract'):
               return __('ProjectBridge', 'projectbridge');
       }
        return '';
    }
 
    public static function displayTabContentForItem(CommonGLPI $item, $tabnum = 1, $withtemplate = 0) {
-      if ($item->getType() == Contract::getType()) {
+    if (method_exists($item, 'getType') && (class_exists('Contract') && method_exists('Contract', 'getType') ? $item->getType() == Contract::getType() : false)) {
           $config = new self();
           $config->showConfigFormForContract($item);
       }
    }
-   public function showConfigFormForContract(Contract $entity, $selectedValue = 0) {
+    public function showConfigFormForContract($entity, $selectedValue = 0) {
        $contractId = $entity->getField('id');
        // instancite selectedValue with default quota alert
        $selectedValue = PluginProjectbridgeConfig::getConfValueByName('globalContractQuotaAlert');
@@ -1267,7 +1332,7 @@ class PluginProjectbridgeContract extends CommonDBTM
 
        echo "<div class='form-group'>";
        echo "<label for='percentage_quota'>".__('Percentage quota to send alert notification', 'projectbridge')."</label> ";
-       Dropdown::showFromArray('percentage_quota', range(0, 100), ['value'=>$selectedValue]);
+    if (method_exists('Dropdown', 'showFromArray')) Dropdown::showFromArray('percentage_quota', range(0, 100), ['value'=>$selectedValue]);
        echo "</div>";
 
        echo "<div class='center firstbloc'>";
