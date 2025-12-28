@@ -2,21 +2,35 @@
  * this function update the progessPercent of processTask when a ticketTask is add or update with time associate.
  * @param TicketTask $ticket_task
  */
-function updateProjectTaskProgressPercent(TicketTask $ticket_task) {
-    // search if entry exist for the associate ticket
-    $ticketId = $ticket_task->fields['tickets_id'];
+/**
+ * Update the progressPercent of processTask when a ticketTask is added or updated with associated time.
+ *
+ * @param TicketTask $ticket_task
+ * @return void
+ */
+function updateProjectTaskProgressPercent(TicketTask $ticket_task): void
+{
+    $ticketId = $ticket_task->fields['tickets_id'] ?? null;
+    if (!$ticketId) {
+        return;
+    }
     $bridge_ticket = new PluginProjectbridgeTicket();
     $results = $bridge_ticket->find(['ticket_id' => $ticketId]);
     foreach ($results as $result) {
-        if (is_array($result) && $result['projecttasks_id'] > 0) {
+        if (is_array($result) && !empty($result['projecttasks_id'])) {
             $projectTask = new ProjectTask();
-            $projectTask->getFromDB($result['projecttasks_id']);
-            $project_id = $projectTask->fields['projects_id'];
-            $pluginProjectbridgeContract = new PluginProjectbridgeContract();
-            $pluginProjectbridgeContracts = $pluginProjectbridgeContract->find(['project_id' => $project_id]);
-            foreach ($pluginProjectbridgeContracts as $pgc) {
-                $contract_id = $pgc['contract_id'];
-                PluginProjectbridgeTask::updateProjectTaskProgressPercent($result['projecttasks_id'], $contract_id);
+            if ($projectTask->getFromDB($result['projecttasks_id'])) {
+                $project_id = $projectTask->fields['projects_id'] ?? null;
+                if ($project_id) {
+                    $pluginProjectbridgeContract = new PluginProjectbridgeContract();
+                    $pluginProjectbridgeContracts = $pluginProjectbridgeContract->find(['project_id' => $project_id]);
+                    foreach ($pluginProjectbridgeContracts as $pgc) {
+                        $contract_id = $pgc['contract_id'] ?? null;
+                        if ($contract_id) {
+                            PluginProjectbridgeTask::updateProjectTaskProgressPercent($result['projecttasks_id'], $contract_id);
+                        }
+                    }
+                }
             }
         }
     }
@@ -28,22 +42,28 @@ function updateProjectTaskProgressPercent(TicketTask $ticket_task) {
  * @param  array $tab_data
  * @return void
  */
-function plugin_projectbridge_post_show_tab(array $tab_data) {
-    if (!empty($tab_data['item']) && is_object($tab_data['item']) && !empty($tab_data['options']['itemtype'])) {
-        if ($tab_data['options']['itemtype'] == 'Projecttask_Ticket' || $tab_data['options']['itemtype'] == 'ProjectTask_Ticket') {
-            if ($tab_data['item'] instanceof Ticket) {
-                // add a line to allow linking ticket to a project task
-                PluginProjectbridgeTicket::postShow($tab_data['item']);
-            } else if ($tab_data['item'] instanceof ProjectTask) {
-                // add data to the list of tickets linked to a project task
-                PluginProjectbridgeTicket::postShowTask($tab_data['item']);
-            }
-        } else if ($tab_data['options']['itemtype'] == 'ProjectTask' && $tab_data['item'] instanceof Project) {
-            // add a link to the linked contract after showing the list of tasks in a project
-            PluginProjectbridgeContract::postShowProject($tab_data['item']);
-            // customize the duration columns
-            PluginProjectbridgeTask::customizeDurationColumns($tab_data['item']);
+/**
+ * Hook called after showing a tab.
+ *
+ * @param array $tab_data
+ * @return void
+ */
+function plugin_projectbridge_post_show_tab(array $tab_data): void
+{
+    if (empty($tab_data['item']) || !is_object($tab_data['item']) || empty($tab_data['options']['itemtype'])) {
+        return;
+    }
+    $itemtype = $tab_data['options']['itemtype'];
+    $item = $tab_data['item'];
+    if ($itemtype === 'Projecttask_Ticket' || $itemtype === 'ProjectTask_Ticket') {
+        if ($item instanceof Ticket) {
+            PluginProjectbridgeTicket::postShow($item);
+        } elseif ($item instanceof ProjectTask) {
+            PluginProjectbridgeTicket::postShowTask($item);
         }
+    } elseif ($itemtype === 'ProjectTask' && $item instanceof Project) {
+        PluginProjectbridgeContract::postShowProject($item);
+        PluginProjectbridgeTask::customizeDurationColumns($item);
     }
 }
 
@@ -53,9 +73,15 @@ function plugin_projectbridge_post_show_tab(array $tab_data) {
  * @param string $itemtype
  * @return array
  */
-function plugin_projectbridge_getAddSearchOptionsNew($itemtype) {
+/**
+ * Add new search options for the plugin.
+ *
+ * @param string $itemtype
+ * @return array
+ */
+function plugin_projectbridge_getAddSearchOptionsNew(string $itemtype): array
+{
     $options = [];
-
     switch ($itemtype) {
         case 'Entity':
             $options[] = [

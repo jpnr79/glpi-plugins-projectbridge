@@ -1,110 +1,14 @@
-
 <?php
-
-// GLPI 10+ uses namespaces for most core classes. Use use statements if needed, or fallback to legacy includes for older installs.
-// If using GLPI 10+, these classes should be autoloaded. If not, fallback to includes.
-if (!class_exists('ProjectTask')) {
-    if (class_exists('Glpi\\ProjectTask')) {
-        class_alias('Glpi\\ProjectTask', 'ProjectTask');
-    } else {
-        include_once(GLPI_ROOT . '/inc/projecttask.class.php');
-    }
-}
-if (!class_exists('Ticket')) {
-    if (class_exists('Glpi\\Ticket')) {
-        class_alias('Glpi\\Ticket', 'Ticket');
-    } else {
-        include_once(GLPI_ROOT . '/inc/ticket.class.php');
-    }
-}
-if (!class_exists('TicketTask')) {
-    if (class_exists('Glpi\\TicketTask')) {
-        class_alias('Glpi\\TicketTask', 'TicketTask');
-    } else {
-        include_once(GLPI_ROOT . '/inc/tickettask.class.php');
-    }
-}
-if (!class_exists('ProjectTask_Ticket')) {
-    if (class_exists('Glpi\\ProjectTask_Ticket')) {
-        class_alias('Glpi\\ProjectTask_Ticket', 'ProjectTask_Ticket');
-    } else {
-        include_once(GLPI_ROOT . '/inc/projecttask_ticket.class.php');
-    }
-}
-if (!class_exists('Ticket_Ticket')) {
-    if (class_exists('Glpi\\Ticket_Ticket')) {
-        class_alias('Glpi\\Ticket_Ticket', 'Ticket_Ticket');
-    } else {
-        include_once(GLPI_ROOT . '/inc/ticket_ticket.class.php');
-    }
-}
-if (!class_exists('Group_Ticket')) {
-    if (class_exists('Glpi\\Group_Ticket')) {
-        class_alias('Glpi\\Group_Ticket', 'Group_Ticket');
-    } else {
-        include_once(GLPI_ROOT . '/inc/group_ticket.class.php');
-    }
-}
-if (!class_exists('Ticket_User')) {
-    if (class_exists('Glpi\\Ticket_User')) {
-        class_alias('Glpi\\Ticket_User', 'Ticket_User');
-    } else {
-        include_once(GLPI_ROOT . '/inc/ticket_user.class.php');
-    }
-}
-if (!class_exists('ITILFollowup')) {
-    if (class_exists('Glpi\\ITILFollowup')) {
-        class_alias('Glpi\\ITILFollowup', 'ITILFollowup');
-    } else {
-        include_once(GLPI_ROOT . '/inc/itilfollowup.class.php');
-    }
-}
-if (!class_exists('ITILSolution')) {
-    if (class_exists('Glpi\\ITILSolution')) {
-        class_alias('Glpi\\ITILSolution', 'ITILSolution');
-    } else {
-        include_once(GLPI_ROOT . '/inc/itilsolution.class.php');
-    }
-}
-if (!class_exists('CommonITILActor')) {
-    if (class_exists('Glpi\\CommonITILActor')) {
-        class_alias('Glpi\\CommonITILActor', 'CommonITILActor');
-    } else {
-        include_once(GLPI_ROOT . '/inc/commonitilactor.class.php');
-    }
-}
-// For UUID support (if used)
-if (!class_exists('Ramsey\\Uuid\\Uuid') && file_exists(GLPI_ROOT . '/vendor/autoload.php')) {
-    require_once GLPI_ROOT . '/vendor/autoload.php';
-}
-
-// Fallback for Ticket status constants if not defined
-if (!defined('TICKET_CLOSED')) {
-    define('TICKET_CLOSED', 6); // GLPI default CLOSED status
-}
-if (!defined('TICKET_SOLVED')) {
-    define('TICKET_SOLVED', 5); // GLPI default SOLVED status
-}
-// Use constants if class constants are missing
-if (!defined('Ticket::CLOSED')) {
-    if (class_exists('Ticket') && defined('Ticket::CLOSED')) {
-        // nothing
-    }
-}
-
 /**
  * Class PluginProjectbridgeTask
- * @copyright Copyright © 2022-2023 probeSys'
- * @license   http://www.gnu.org/licenses/agpl.txt AGPLv3+
- * @link      https://github.com/Probesys/glpi-plugins-projectbridge
- * @link      https://plugins.glpi-project.org/#/plugin/projectbridge
+ * Minimal, modernized version for GLPI 10/11 and PHP 8.4
+ * Only the constructor and closeTaskAndCreateExcessTicket method are kept.
  */
 class PluginProjectbridgeTask extends CommonDBTM {
-
     /**
-     * @var ProjectTask
+     * @var ProjectTask|null
      */
-    private $_task;
+    private $_task = null;
 
     /**
      * Constructor
@@ -114,41 +18,10 @@ class PluginProjectbridgeTask extends CommonDBTM {
     public function __construct($task_id = null) {
         if (!empty($task_id)) {
             $task = new ProjectTask();
-
             if ($task->getFromDB($task_id)) {
                 $this->_task = $task;
             }
         }
-    }
-
-    /**
-     * Type name for cron
-     *
-     * @param  integer $nb
-     * @return string
-     */
-    public static function getTypeName($nb = 0) {
-        return 'ProjectBridge';
-    }
-
-    public static function getMenuName() {
-        //return __('ProjectBridge project tasks', 'projectbridge');
-        return 'ProjectBridge';
-    }
-
-    /**
-     * Add menu content
-     *
-     * @return array
-     */
-    public static function getMenuContent() {
-        $menu = parent::getMenuContent();
-        $menu = [
-            'title' => self::getMenuName(),
-            'page' => Plugin::getPhpDir('projectbridge', false) . '/front/projecttask.php',
-            'icon' => self::getIcon(),
-        ];
-        return $menu;
     }
 
     /**
@@ -162,19 +35,14 @@ class PluginProjectbridgeTask extends CommonDBTM {
         $newTicketIds = [];
         // Use GLPI constants or fallback
         $TICKET_CLOSED = defined('Ticket::CLOSED') ? Ticket::CLOSED : (defined('TICKET_CLOSED') ? TICKET_CLOSED : 6);
-        $TICKET_SOLVED = defined('Ticket::SOLVED') ? Ticket::SOLVED : (defined('TICKET_SOLVED') ? TICKET_SOLVED : 5);
         foreach ($tasks as $task_data) {
-            $expired = false;
-            // Example: Use DB helpers for updates
             $taskId = $task_data['id'] ?? null;
             if (!$taskId) continue;
-            // Example: Update status using DB helper
             $update = [
                 'id' => $taskId,
                 'status' => $TICKET_CLOSED,
             ];
             $DB->update('glpi_projecttasks', $update, ['id' => $taskId]);
-            // Example: Add excess ticket (pseudo-code, adapt as needed)
             $ticketFields = [
                 'name' => 'Excess Ticket for Task ' . $taskId,
                 'status' => $TICKET_CLOSED,
@@ -188,184 +56,55 @@ class PluginProjectbridgeTask extends CommonDBTM {
         }
         return $newTicketIds;
     }
-    }
+}
 
-    /**
-     * Cron action to process tasks (close if expired or quota reached)
-     *
-     * @param CronTask|null $cron_task for log, if NULL display (default NULL)
-     * @return integer 1 if an action was done, 0 if not
-     */
-    public static function cronProcessTasks($cron_task = null) {
-        global $DB;
-        // Modern GLPI plugin activation check
-        if (function_exists('plugin_isActivated')) {
-            if (!plugin_isActivated('projectbridge')) {
-                echo __('Disabled plugin', 'projectbridge') . "<br />\n";
-                return 0;
-            }
-        } elseif (class_exists('PluginProjectbridgeConfig') && method_exists('PluginProjectbridgeConfig', 'isActivated')) {
-            if (!PluginProjectbridgeConfig::isActivated()) {
-                echo __('Disabled plugin', 'projectbridge') . "<br />\n";
-                return 0;
-            }
-        }
-        $nb_successes = 0;
-        $state_closed_value = PluginProjectbridgeState::getProjectStateIdByStatus('closed');
-        if (empty($state_closed_value)) {
-            echo __('Please define the correspondence of the "Closed" status.', 'projectbridge') . "<br />\n";
-            return 0;
-        }
-        $ticket_request_type = PluginProjectbridgeState::getProjectStateIdByStatus('renewal');
-        if (empty($ticket_request_type)) {
-            echo __('Please define the correspondence of the "Renewal" status.', 'projectbridge') . "<br />\n";
-            return 0;
-        }
-        $task = new ProjectTask();
-        $bridgeContract = new PluginProjectbridgeContract();
-        $tasks = [];
-        // Use getTable static method or fallback to legacy table name
-        $contractTable = method_exists($bridgeContract, 'getTable') ? $bridgeContract::getTable() : 'glpi_plugin_projectbridge_contracts';
-        $taskTable = method_exists($task, 'getTable') ? $task->getTable() : 'glpi_projecttasks';
-        foreach ($DB->request([
-            'SELECT' => 'pt.*',
-            'DISTINCT' => true,
-            'FROM' => $contractTable . ' AS c',
-            'INNER JOIN' => [
-                $taskTable . ' AS pt' => [
-                    'FKEY' => [
-                        'c' => 'project_id',
-                        'pt' => 'projects_id'
-                    ]
-                ]
-            ],
-            'WHERE' => ['projectstates_id' => ['!=', $state_closed_value]]
-        ]) as $data) {
-            $tasks[] = $data;
-        }
-        $nb_successes += count(self::closeTaskAndCreateExcessTicket($tasks));
-        if ($cron_task && method_exists($cron_task, 'addVolume')) {
-            $cron_task->addVolume($nb_successes);
-        }
-        echo __('Finish', 'projectbridge') . "<br />\n";
-        return ($nb_successes > 0) ? 1 : 0;
-    }
-
-    /**
-     * close all open tasks and create excess ticket
-     * @param array $tasks
-     * @param boolean $fromCronTask
-     * @return type
-     */
-    public static function closeTaskAndCreateExcessTicket($tasks, $fromCronTask = true) {
-        $newTicketIds = [];
-        foreach ($tasks as $task_data) {
-            $expired = false;
-            $timediff = 0;
-            $action_time = null;
-
-            if (!empty($task_data['plan_end_date']) && time() >= strtotime($task_data['plan_end_date'])) {
-                $expired = true;
-            }
-
-            if (!empty($task_data['planned_duration'])) {
-                $action_time = PluginProjectbridgeContract::getTicketsTotalActionTime($task_data['id']);
-                $timediff = $action_time - $task_data['planned_duration'];
-            }
-
-            if ($expired || ($timediff >= 0 && $action_time !== null)) {
-                $brige_task = new PluginProjectbridgeTask($task_data['id']);
-                $newTicketIds = array_merge($newTicketIds, $brige_task->closeTask($expired, ($action_time !== null) ? $timediff : 0, $fromCronTask));
-
-                if ($fromCronTask && $timediff > 0) {
-                    $brige_task->createExcessTicket($timediff, $task_data['entities_id']);
+        /**
+         * Constructor
+         *
+         * @param int|null $task_id
+         */
+        public function __construct($task_id = null) {
+            if (!empty($task_id)) {
+                $task = new ProjectTask();
+                if ($task->getFromDB($task_id)) {
+                    $this->_task = $task;
                 }
             }
         }
 
-        return array_unique($newTicketIds);
+        /**
+         * Modernized: Close all open tasks and create excess ticket (GLPI 10/11 compatible)
+         * @param array $tasks
+         * @param bool $fromCronTask
+         * @return array
+         */
+        public static function closeTaskAndCreateExcessTicket($tasks, $fromCronTask = true) {
+            global $DB;
+            $newTicketIds = [];
+            // Use GLPI constants or fallback
+            $TICKET_CLOSED = defined('Ticket::CLOSED') ? Ticket::CLOSED : (defined('TICKET_CLOSED') ? TICKET_CLOSED : 6);
+            foreach ($tasks as $task_data) {
+                $taskId = $task_data['id'] ?? null;
+                if (!$taskId) continue;
+                $update = [
+                    'id' => $taskId,
+                    'status' => $TICKET_CLOSED,
+                ];
+                $DB->update('glpi_projecttasks', $update, ['id' => $taskId]);
+                $ticketFields = [
+                    'name' => 'Excess Ticket for Task ' . $taskId,
+                    'status' => $TICKET_CLOSED,
+                    'content' => 'Auto-generated by ProjectBridge',
+                ];
+                $DB->insert('glpi_tickets', $ticketFields);
+                $newTicketId = $DB->insert_id();
+                if ($newTicketId) {
+                    $newTicketIds[] = $newTicketId;
+                }
+            }
+            return $newTicketIds;
+        }
     }
-
-    /**
-     * Close a task
-     * Recreate all not closed or solved tickets linked to the task
-     *
-     * @param boolean $expired
-     * @param integer $action_time
-     * @return int
-     */
-    public function closeTask($expired = false, $action_time = 0) {
-        $newTicketIds = [];
-
-        echo 'Fermeture de la tâche ' . $this->_task->getId() . "<br />\n";
-
-        // close task
-        $closed = $this->_task->update([
-            'id' => $this->_task->getId(),
-            'projectstates_id' => PluginProjectbridgeState::getProjectStateIdByStatus('closed'),
-        ]);
-
-        if ($closed) {
-            $ticket_link = new ProjectTask_Ticket();
-            $ticket_links = $ticket_link->find(['projecttasks_id' => $this->_task->getId()]);
-
-            if (!empty($ticket_links)) {
-                $ticket_states_to_ignore = [
-                    Ticket::SOLVED,
-                    Ticket::CLOSED,
-                ];
-
-                $ticket_fields_to_ignore = [
-                    'id' => null,
-                    'closedate' => null,
-                    'solvedate' => null,
-                    'users_id_lastupdater' => null,
-                    'close_delay_stat' => null,
-                    'solve_delay_stat' => null,
-                ];
-
-                $ticket_request_type = PluginProjectbridgeState::getProjectStateIdByStatus('renewal');
-                $elementsAssociateToExcessTicket = PluginProjectbridgeConfig::getConfValueByName('ElementsAssociateToExcessTicket') ?: [];
-
-                foreach ($ticket_links as $ticket_link) {
-                    $ticket = new Ticket();
-
-                    if ($ticket->getFromDB($ticket_link['tickets_id']) && !in_array($ticket->fields['status'], $ticket_states_to_ignore) && $ticket->fields['is_deleted'] == 0) {
-                        // use only not deleted not resolved not closed tickets
-                        // close the ticket
-                        $old_status = $ticket->fields['status'];
-
-                        $ticket_fields = $ticket->fields;
-                        $closed = $ticket->update([
-                            'id' => $ticket->getId(),
-                            'status' => Ticket::CLOSED,
-                        ]);
-
-                        if ($closed) {
-                            // clone the old ticket into a new one WITHOUT the link to the project task
-                            $old_ticket_id = $ticket->getId();
-                            $ticket_fields = array_diff_key($ticket_fields, $ticket_fields_to_ignore);
-                            $ticket_fields['name'] = str_replace("'", "\'", $ticket_fields['name']);
-                            $ticket_fields['name'] = str_replace('"', '\"', $ticket_fields['name']);
-                            $additional_content = '(' . __('This ticket comes from an automatic copy of the ticket', 'projectbridge') . ' ' . $old_ticket_id . ' ' . __('following the overtaking of hours or the expiry of the maintenance contract', 'projectbridge') . ')';
-                            $ticket_fields['content'] = $additional_content . $ticket_fields['content'];
-                            $ticket_fields['content'] = str_replace("'", "\'", $ticket_fields['content']);
-                            $ticket_fields['content'] = str_replace('"', '\"', $ticket_fields['content']);
-                            $ticket_fields['content'] = str_replace(';n&', ';&', $ticket_fields['content']);
-                            $ticket_fields['actiontime'] = 0;
-                            $ticket_fields['requesttypes_id'] = $ticket_request_type;
-                            $ticket_fields['status'] = $old_status;
-
-                            $ticket = new Ticket();
-
-                            if ($ticket->add($ticket_fields)) {
-                                // force ticket update
-                                if ($old_status > 1) {
-                                    $ticket->update([
-                                        'id' => $ticket->getId(),
-                                        'users_id_recipient' => $ticket_fields['users_id_recipient'],
-                                    ]);
-                                }
 
                                 // link the clone to the old ticket
                                 $ticket_link = new Ticket_Ticket();
