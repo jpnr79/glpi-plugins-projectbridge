@@ -7,7 +7,9 @@
  */
 function plugin_projectbridge_install() {
     // Add installation logic here if needed (DB schema, default config, etc.)
-    Toolbox::logInFile('projectbridge', sprintf('INFO [%s:%s] Plugin installed by user=%s', __FILE__, __FUNCTION__, $_SESSION['glpiname'] ?? 'unknown'));
+    if (class_exists('Toolbox')) {
+        Toolbox::logInFile('projectbridge', sprintf('INFO [%s:%s] Plugin installed by user=%s', __FILE__, __FUNCTION__, $_SESSION['glpiname'] ?? 'unknown'));
+    }
     return true;
 }
 
@@ -18,7 +20,9 @@ function plugin_projectbridge_install() {
  */
 function plugin_projectbridge_uninstall() {
     // Add migration or cleanup logic here if needed
-    Toolbox::logInFile('projectbridge', sprintf('INFO [%s:%s] Plugin uninstalled by user=%s', __FILE__, __FUNCTION__, $_SESSION['glpiname'] ?? 'unknown'));
+    if (class_exists('Toolbox')) {
+        Toolbox::logInFile('projectbridge', sprintf('INFO [%s:%s] Plugin uninstalled by user=%s', __FILE__, __FUNCTION__, $_SESSION['glpiname'] ?? 'unknown'));
+    }
     return true;
 }
 /**

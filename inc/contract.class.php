@@ -407,7 +407,10 @@ class PluginProjectbridgeContract extends CommonDBTM
           if ($nb_hours) {
               // get all activ projectTask
               $activeProjectTask = PluginProjectbridgeContract::getAllActiveProjectTasksForProject($project_id);
-             if (!count($activeProjectTask)) {
+              if (!is_array($activeProjectTask)) {
+                  $activeProjectTask = [];
+              }
+              if (!count($activeProjectTask)) {
                  $haveToBeRenewed = true;
                  $html_parts[] = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i>&nbsp;' . __('Warning ! No associate projectTask with "In progress" status exist', 'projectbridge') . ' </div>';
                  $lastClosedProjectTask = PluginProjectbridgeContract::getLastClosedProjectTasksForProject($project_id);
