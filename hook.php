@@ -1,3 +1,7 @@
+if (php_sapi_name() !== 'cli' && (!defined('GLPI_ROOT') || empty(GLPI_ROOT))) {
+    http_response_code(403);
+    exit('Direct access to this file is forbidden.');
+}
 /**
  * this function update the progessPercent of processTask when a ticketTask is add or update with time associate.
  * @param TicketTask $ticket_task
