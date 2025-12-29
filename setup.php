@@ -157,20 +157,21 @@ function plugin_init_projectbridge() {
  */
 function plugin_projectbridge_check_prerequisites() {
     $prerequisites_check_ok = false;
-
+    $glpi_version = 'unknown';
+    $version_file = defined('GLPI_ROOT') ? GLPI_ROOT . '/version' : __DIR__ . '/../../../version';
+    if (is_file($version_file)) {
+        $glpi_version = trim(file_get_contents($version_file));
+    } elseif (defined('GLPI_VERSION')) {
+        $glpi_version = constant('GLPI_VERSION');
+    }
     try {
-        if (defined('GLPI_VERSION')) {
-            if (version_compare(GLPI_VERSION, PLUGIN_PROJECTBRIDGE_MIN_GLPI_VERSION, '<')) {
-                throw new \Exception('This plugin requires GLPI >= ' . PLUGIN_PROJECTBRIDGE_MIN_GLPI_VERSION);
-            }
-            $prerequisites_check_ok = true;
-        } else {
-            throw new \Exception('GLPI_VERSION is not defined.');
+        if ($glpi_version === 'unknown' || version_compare($glpi_version, PLUGIN_PROJECTBRIDGE_MIN_GLPI_VERSION, '<')) {
+            throw new \Exception('This plugin requires GLPI >= ' . PLUGIN_PROJECTBRIDGE_MIN_GLPI_VERSION);
         }
+        $prerequisites_check_ok = true;
     } catch (\Exception $e) {
         echo $e->getMessage();
     }
-
     return $prerequisites_check_ok;
 }
 
